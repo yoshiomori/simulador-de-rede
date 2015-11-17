@@ -7,10 +7,7 @@ class Interface(object):
         self.buffer_entrada = buffer_entrada
         self.buffer_saída = []
 
-    def pop(self):
-        return self.buffer_saída.pop(0)
-
-    def push(self, datagrama):
+    def append_entrada(self, datagrama):
         if len(self.buffer_entrada) >= tamanho_buffer_router:
             return  # Não insere se o buffer alcançar o limite
         self.buffer_entrada.append(datagrama)
@@ -28,8 +25,8 @@ conjunto_tabelas = {}
 # Função que inicializa um router
 def router(índice, número_interfaces):
     tabela = {}
-    interfaces = []
     buffer_entrada = []
+    interfaces = [Interface(buffer_entrada) for _ in range(número_interfaces)]
     conjunto_tabelas[índice] = tabela
     conjunto_interface[índice] = interfaces
     for _ in range(número_interfaces):

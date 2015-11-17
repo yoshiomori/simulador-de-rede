@@ -3,12 +3,6 @@ class Interface(object):
         self.buffer_entrada = []
         self.buffer_saída = []
 
-    def pop(self):
-        return self.buffer_saída.pop(0)
-
-    def push(self, datagrama):
-        self.buffer_entrada.append(datagrama)
-
     def tem_saída(self):
         return len(self.buffer_saída) > 0
 

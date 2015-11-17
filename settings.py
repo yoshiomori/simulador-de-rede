@@ -1,2 +1,2 @@
-tamanho_datagrama = 2
-tamanho_buffer_router = 10
+tamanho_datagrama = 1472
+tamanho_buffer_router = 100 * tamanho_datagrama
