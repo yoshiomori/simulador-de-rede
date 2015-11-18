@@ -1,4 +1,4 @@
-from settings import tamanho_datagrama
+from comum import tamanho_datagrama
 from datetime import timedelta
 time = timedelta(0)
 

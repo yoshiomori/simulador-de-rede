@@ -1,14 +1,11 @@
-class Interface(object):
+from comum import split_resto, string_to_ip
+from interface import Interface
+
+
+class InterfaceHost(Interface):
     def __init__(self):
+        super().__init__()
         self.buffer_entrada = []
-        self.buffer_saída = []
-        self.ip = None
-
-    def set_ip(self, ip):
-        self.ip = ip
-
-    def tem_saída(self):
-        return len(self.buffer_saída) > 0
 
     def tem_entrada(self):
         return len(self.buffer_entrada) > 0
@@ -20,24 +17,21 @@ class Interface(object):
     def pop_entrada(self):
         return self.buffer_entrada.pop(0)
 
-    def append_saída(self, datagrama):
-        self.buffer_saída.append(datagrama)
-
-    def pop_saída(self):
-        return self.buffer_saída.pop(0)
-
 interfaces = {}
 roteador = {}
 dns = {}
 
 
-def set_ip(índice, ip_host, roteador_padrão, dns_padrão):
-    if índice not in ip or índice not in roteador or índice not in dns:
+def set_ip(índice, resto):
+    ip_roteador_dns = split_resto(resto)
+    if len(ip_roteador_dns):
+        raise RuntimeError('Arquivo de entrada inválido')
+    if índice not in interfaces or índice not in roteador or índice not in dns:
         print('Host não configurado')
         return
-    ip[índice] = bytearray([int(v) for v in ip_host.split('.')])
-    roteador[índice] = bytearray([int(v) for v in roteador_padrão.split('.')])
-    dns[índice] = bytearray([int(v) for v in dns_padrão.split('.')])
+    interfaces[índice].set_ip(string_to_ip(ip_roteador_dns[0]))
+    roteador[índice] = string_to_ip(ip_roteador_dns[1])
+    dns[índice] = string_to_ip(ip_roteador_dns[2])
 
 
 # função host que deve ser chamada por uma thread

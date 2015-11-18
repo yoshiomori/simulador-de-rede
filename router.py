@@ -1,4 +1,4 @@
-from settings import tamanho_buffer_router
+from comum import tamanho_buffer_router, split_resto, string_to_ip
 from threading import Condition
 
 
@@ -34,11 +34,8 @@ conjunto_tabelas = {}
 
 
 def set_ip(índice, resto):
-    porta_ip = resto.split(' ')
-    while '' in porta_ip:
-        porta_ip.remove('')
-    for porta, ip in [(int(porta), bytearray([int(v) for v in ip.split('.')])) for porta, ip in
-                      zip(porta_ip[::2], porta_ip[1::2])]:
+    porta_ip = split_resto(resto)
+    for porta, ip in [(int(porta), string_to_ip(ip)) for porta, ip in zip(porta_ip[::2], porta_ip[1::2])]:
         if len(ip) != 4:
             raise RuntimeError(resto, 'não é válido')
         conjunto_interface[índice][porta].set_ip(ip)
