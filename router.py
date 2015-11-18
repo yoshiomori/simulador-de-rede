@@ -23,7 +23,7 @@ conjunto_tabelas = {}
 # Cada router tem um índice associado a ele
 # O índice de cada router é usado para acessar o seu conjunto de interfaces
 # Função que inicializa um router
-def router(índice, número_interfaces):
+def faz(índice, número_interfaces):
     tabela = {}
     buffer_entrada = []
     interfaces = [Interface(buffer_entrada) for _ in range(número_interfaces)]
@@ -37,6 +37,7 @@ def router(índice, número_interfaces):
 
     c = Condition()
     while True:
+        c.acquire()
         c.wait_for(tem_entrada)
         datagrama = buffer_entrada.pop(0)
         if datagrama[32:64] in tabela:

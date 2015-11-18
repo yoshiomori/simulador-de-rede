@@ -15,7 +15,7 @@ interfaces = {}
 # função host que deve ser chamada por uma thread
 # O argumento índice é proveniente do arquivo de entrada
 # O servidor é uma função que deve receber uma referência para um objeto Interface
-def host(índice, servidor):
+def faz(índice, servidor):
     interface = Interface()
     interfaces[índice] = interface
     servidor(interface)
