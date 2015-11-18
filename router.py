@@ -39,7 +39,16 @@ conjunto_interface = {}
 conjunto_tabelas = {}
 
 
-def set_ip(índice, resto):
+def set_route(índice, resto):  # comando set route do arquivo trace
+    par = split_resto(resto)
+    par = [(string_to_ip(ip), outro) for ip, outro in par]
+    for ip, porta in zip(par[:2*len(conjunto_interface[índice]):2], par[1:2*len(conjunto_interface[índice]):2]):
+        conjunto_tabelas[índice][ip] = conjunto_interface[índice][int(porta)]
+    for ip, outro_ip in zip(par[2*len(conjunto_interface[índice])::2], par[2*len(conjunto_interface[índice])+1::2]):
+        conjunto_tabelas[índice][ip] = string_to_ip(outro_ip)
+
+
+def set_ip(índice, resto):  # comando set ip do arquivo trace para roteador
     porta_ip = split_resto(resto)
     for porta, ip in [(int(porta), string_to_ip(ip)) for porta, ip in zip(porta_ip[::2], porta_ip[1::2])]:
         if len(ip) != 4:
