@@ -2,6 +2,10 @@ class Interface(object):
     def __init__(self):
         self.buffer_entrada = []
         self.buffer_saída = []
+        self.ip = None
+
+    def set_ip(self, ip):
+        self.ip = ip
 
     def tem_saída(self):
         return len(self.buffer_saída) > 0
@@ -9,8 +13,20 @@ class Interface(object):
     def tem_entrada(self):
         return len(self.buffer_entrada) > 0
 
+    def append_entrada(self, datagrama):
+        if datagrama[32:64] == self.ip:
+            self.buffer_entrada.append(datagrama)
+
+    def pop_entrada(self):
+        return self.buffer_entrada.pop(0)
+
+    def append_saída(self, datagrama):
+        self.buffer_saída.append(datagrama)
+
+    def pop_saída(self):
+        return self.buffer_saída.pop(0)
+
 interfaces = {}
-ip = {}
 roteador = {}
 dns = {}
 
