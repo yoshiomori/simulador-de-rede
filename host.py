@@ -1,3 +1,5 @@
+import sys
+
 from comum import split_resto, string_to_ip
 from interface import Interface
 
@@ -11,7 +13,7 @@ class InterfaceHost(Interface):
         return len(self.buffer_entrada) > 0
 
     def append_entrada(self, datagrama):
-        if datagrama[32:64] == self.ip:
+        if int.from_bytes(datagrama[32:64], sys.byteorder) == self.ip:
             self.buffer_entrada.append(datagrama)
 
     def pop_entrada(self):

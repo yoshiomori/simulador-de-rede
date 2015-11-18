@@ -1,4 +1,6 @@
-from comum import tamanho_buffer_router, split_resto, string_to_ip
+import sys
+
+from comum import split_resto, string_to_ip, mascara
 from threading import Condition
 
 
@@ -7,6 +9,7 @@ class Interface(object):
         self.buffer_entrada = buffer_entrada
         self.buffer_saída = []
         self.ip = None
+        self.tamanho_buffer_router = 0
 
     def set_ip(self, ip):
         self.ip = ip
@@ -15,7 +18,7 @@ class Interface(object):
         return len(self.buffer_saída) > 0
 
     def append_entrada(self, datagrama):
-        if len(self.buffer_entrada) >= tamanho_buffer_router:
+        if len(self.buffer_entrada) >= self.tamanho_buffer_router:
             return  # Não insere se o buffer alcançar o limite
         self.buffer_entrada.append(datagrama)
 
@@ -27,6 +30,9 @@ class Interface(object):
 
     def pop_saída(self):
         return self.buffer_saída.pop(0)
+
+    def set_tamanho_buffer(self, tamanho):
+        self.tamanho_buffer_router = tamanho
 
 
 conjunto_interface = {}
@@ -45,6 +51,7 @@ def set_ip(índice, resto):
 # O índice de cada router é usado para acessar o seu conjunto de interfaces
 # Função que inicializa um router
 def faz(índice, número_interfaces):
+    global número_pessoas_usando_tempo
     tabela = {}  # Associo o ip à uma interface
     buffer_entrada = []
     interfaces = [Interface(buffer_entrada) for _ in range(número_interfaces)]
@@ -61,5 +68,9 @@ def faz(índice, número_interfaces):
         c.acquire()
         c.wait_for(tem_entrada)
         datagrama = buffer_entrada.pop(0)
-        if datagrama[32:64] in tabela:
-            tabela[datagrama[32:64]].push(datagrama)
+        ip_destino = int.from_bytes(datagrama[32:64], sys.byteorder)
+        while ip_destino & mascara in tabela:
+            if type(tabela[ip_destino & mascara]) is Interface:
+                tabela[ip_destino & mascara].push(datagrama)
+            else:
+                ip_destino = tabela[ip_destino & mascara]

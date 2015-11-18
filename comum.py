@@ -1,4 +1,7 @@
-tamanho_mínimo_datagrama = 20
+import sys
+
+resolução_tempo = 20  # Em milissegundos
+mascara = int.from_bytes(bytearray([255, 255, 255, 0]), sys.byteorder)
 
 
 def split_resto(resto):
@@ -11,4 +14,4 @@ def split_resto(resto):
 
 
 def string_to_ip(ip):
-    return bytearray([int(v) for v in ip.split('.')])
+    return [int(v) for v in ip.split('.')]
