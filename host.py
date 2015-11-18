@@ -10,6 +10,18 @@ class Interface(object):
         return len(self.buffer_entrada) > 0
 
 interfaces = {}
+ip = {}
+roteador = {}
+dns = {}
+
+
+def set_ip(índice, ip_host, roteador_padrão, dns_padrão):
+    if índice not in ip or índice not in roteador or índice not in dns:
+        print('Host não configurado')
+        return
+    ip[índice] = bytearray([int(v) for v in ip_host.split('.')])
+    roteador[índice] = bytearray([int(v) for v in roteador_padrão.split('.')])
+    dns[índice] = bytearray([int(v) for v in dns_padrão.split('.')])
 
 
 # função host que deve ser chamada por uma thread
@@ -18,4 +30,8 @@ interfaces = {}
 def faz(índice, servidor):
     interface = Interface()
     interfaces[índice] = interface
+    ip[índice] = None
+    roteador[índice] = None
+    dns[índice] = None
+
     servidor(interface)
