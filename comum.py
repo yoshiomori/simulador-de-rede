@@ -1,3 +1,6 @@
+tamanho_mínimo_datagrama = 20
+
+
 def split_resto(resto):
     if resto is not str:
         raise TypeError('resto deve ser uma str')
