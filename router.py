@@ -4,6 +4,10 @@ from comum import split_resto, string_to_ip, mascara
 from threading import Condition
 
 
+def set_router(nome_roteador, número_interfaces):
+    print(nome_roteador, número_interfaces)
+
+
 class Interface(object):
     def __init__(self, buffer_entrada):
         self.buffer_entrada = buffer_entrada
@@ -41,20 +45,26 @@ processamento = {}
 tamanho_buffer = {}
 
 
-def set_performance(índice, resto):  # comando set performance do arquivo de entrada
-    resto = split_resto(resto)
-    processamento[índice] = int(resto[0][:len(resto[0]) - 2])  # gravando o inteiro excluindo us do 100us
-    for i, v in zip(resto[1::2], resto[2::2]):  # de 100us 0 1000 1 1000 2 1000 temos i = 0, 1, 2 e v = 1000, 1000, 1000
-        tamanho_buffer[índice][i] = v
+def set_ip_router(nome_roteador, entrada):
+    print(nome_roteador, entrada)
 
 
-def set_route(índice, resto):  # comando set route do arquivo de entrada
-    par = split_resto(resto)
-    par = [(string_to_ip(ip), outro) for ip, outro in par]
-    for ip, porta in zip(par[:2*len(conjunto_interface[índice]):2], par[1:2*len(conjunto_interface[índice]):2]):
-        conjunto_tabelas[índice][ip] = conjunto_interface[índice][int(porta)]
-    for ip, outro_ip in zip(par[2*len(conjunto_interface[índice])::2], par[2*len(conjunto_interface[índice])+1::2]):
-        conjunto_tabelas[índice][ip] = string_to_ip(outro_ip)
+def set_performance(nome_roteador, tempo_para_processar, entrada):  # comando set performance do arquivo de entrada
+    print(nome_roteador, tempo_para_processar, entrada)
+    # resto = split_resto(resto)
+    # processamento[índice] = int(resto[0][:len(resto[0]) - 2])  # gravando o inteiro excluindo us do 100us
+    # for i, v in zip(resto[1::2], resto[2::2]):  # de 100us 0 1000 1 1000 2 1000 temos i = 0, 1, 2 e v = 1000, 1000, 1000
+    #     tamanho_buffer[índice][i] = v
+
+
+def set_route(nome_roteador, entrada):  # comando set route do arquivo de entrada
+    print(nome_roteador, entrada)
+    # par = split_resto(resto)
+    # par = [(string_to_ip(ip), outro) for ip, outro in par]
+    # for ip, porta in zip(par[:2*len(conjunto_interface[índice]):2], par[1:2*len(conjunto_interface[índice]):2]):
+    #     conjunto_tabelas[índice][ip] = conjunto_interface[índice][int(porta)]
+    # for ip, outro_ip in zip(par[2*len(conjunto_interface[índice])::2], par[2*len(conjunto_interface[índice])+1::2]):
+    #     conjunto_tabelas[índice][ip] = string_to_ip(outro_ip)
 
 
 def set_ip(índice, resto):  # comando set ip do arquivo trace para roteador

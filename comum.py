@@ -14,4 +14,4 @@ def split_resto(resto):
 
 
 def string_to_ip(ip):
-    return [int(v) for v in ip.split('.')]
+    return int.from_bytes(bytearray([int(v) for v in ip.split('.')]), sys.byteorder)

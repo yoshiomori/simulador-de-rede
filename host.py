@@ -24,16 +24,33 @@ roteador = {}
 dns = {}
 
 
-def set_ip(índice, resto):
-    ip_roteador_dns = split_resto(resto)
-    if len(ip_roteador_dns):
-        raise RuntimeError('Arquivo de entrada inválido')
-    if índice not in interfaces or índice not in roteador or índice not in dns:
-        print('Host não configurado')
-        return
-    interfaces[índice].set_ip(string_to_ip(ip_roteador_dns[0]))
-    roteador[índice] = string_to_ip(ip_roteador_dns[1])
-    dns[índice] = string_to_ip(ip_roteador_dns[2])
+def set_ip_host(nome_host, endereço_ip_computador, endereço_ip_roteador_padrão, endereço_ip_servidor_dns):
+    print(nome_host, endereço_ip_computador, endereço_ip_roteador_padrão, endereço_ip_servidor_dns)
+
+
+def set_ircc(nome_host, nome_servidor):
+    print(nome_host, nome_servidor)
+
+
+def set_ircs(nome_host, nome_servidor):
+    print(nome_host, nome_servidor)
+
+
+def set_dnss(nome_host, nome_servidor):
+    print(nome_host, nome_servidor)
+
+
+def set_ip(nome, endereço_ip_computador, endereço_ip_roteador_padrão, endereço_ip_servidor_dns):
+    print(nome, endereço_ip_computador, endereço_ip_roteador_padrão, endereço_ip_servidor_dns)
+    # ip_roteador_dns = split_resto(resto)
+    # if len(ip_roteador_dns):
+    #     raise RuntimeError('Arquivo de entrada inválido')
+    # if índice not in interfaces or índice not in roteador or índice not in dns:
+    #     print('Host não configurado')
+    #     return
+    # interfaces[índice].set_ip(string_to_ip(ip_roteador_dns[0]))
+    # roteador[índice] = string_to_ip(ip_roteador_dns[1])
+    # dns[índice] = string_to_ip(ip_roteador_dns[2])
 
 
 # função host que deve ser chamada por uma thread
@@ -42,8 +59,11 @@ def set_ip(índice, resto):
 def faz(índice, servidor):
     interface = Interface()
     interfaces[índice] = interface
-    ip[índice] = None
     roteador[índice] = None
     dns[índice] = None
 
     servidor(interface)
+
+
+def set_host(nome_host):
+    print(nome_host)
