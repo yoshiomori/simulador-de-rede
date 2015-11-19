@@ -2,10 +2,10 @@ import sys
 from re import findall, match
 
 from comum import string_to_ip
-from host import set_host, set_ip_host, set_ircc, set_ircs, set_dnss
+from host import set_host, set_ip_host, set_ircc, set_ircs, set_dnss, simulate
 from router import set_router, set_ip_router, set_route, set_performance
 from enlace import set_duplex_link_host_host, set_duplex_link_host_router, set_duplex_link_router_router, \
-    set_duplex_link_router_host, set_sniffer_router_router, set_sniffer_host_router, set_sniffer_host_host, set_sniffer_router_host
+    set_sniffer_router_router, set_sniffer_host_router, set_sniffer_host_host
 
 
 # from enlace import set_duplex_link
@@ -14,7 +14,6 @@ from enlace import set_duplex_link_host_host, set_duplex_link_host_router, set_d
 
 def main():
     arquivo = open(sys.argv[1])
-    print(sys.argv[1])
     for linha in arquivo.readlines():
         if match('set\s+host\s+(\w+)\n?', linha):
             nome_host = findall('set\s+host\s+(\w+)\n?', linha).pop()
@@ -99,7 +98,7 @@ def main():
                 atraso = findall('(\d+)m', atraso).pop()
                 p = -3
             atraso = int(atraso) * 10 ** p
-            set_duplex_link_router_host(nome_primeiro, interface_primeiro, nome_segundo, taxa, atraso)
+            set_duplex_link_host_router(nome_segundo, nome_primeiro, interface_primeiro, taxa, atraso)
         elif match('set\s+ip\s+(\w+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\n?', linha):
             nome_host, endereço_ip_computador, endereço_ip_roteador_padrão, endereço_ip_servidor_dns = findall(
                 'set\s+ip\s+(\w+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\n?',
@@ -123,12 +122,15 @@ def main():
                           primeiro_endereço_ip, segundo_endereço_ip in
                           findall('\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)', linha)]
             set_route(nome_roteador, entrada)
-        elif match('set\s+performance\s+r\d+\s+(\w+)s(\s+\d+\s+\d+)+\n?', linha):
-            nome_roteador, tempo_para_processar = findall('set\s+performance\s+r(\w+)\s+(\w+)s', linha).pop()
+        elif match('set\s+performance\s+(\w+)+\s+(\w+)s(\s+\d+\s+\d+)+\n?', linha):
+            nome_roteador, tempo_para_processar = findall('set\s+performance\s+(\w+)\s+(\w+)s', linha).pop()
             p = 0
             if match('(\d+)m', tempo_para_processar):
                 tempo_para_processar = findall('(\d+)m', tempo_para_processar).pop()
                 p = -3
+            elif match('(\d+)u', tempo_para_processar):
+                tempo_para_processar = findall('(\d+)u', tempo_para_processar).pop()
+                p = -6
             tempo_para_processar = int(tempo_para_processar) * 10 ** p
             entrada = [(int(porta), int(tamanho)) for porta, tamanho in findall('\s+(\d+)\s+(\d+)', linha)]
             set_performance(nome_roteador, tempo_para_processar, entrada)
@@ -144,10 +146,13 @@ def main():
         elif match("""set\s+sniffer\s+\w+\.\d+\s+\w+\.\d+\s+".+"\n?""", linha):
             nome_primeiro, interface_primeiro, nome_segundo, interface_segundo, nome_arquivo = findall(
                 """set\s+sniffer\s+(\w+)\.(\d+)\s+(\w+)\.(\d+)\s+"(.+)"\n?""", linha).pop()
+            interface_primeiro = int(interface_primeiro)
+            interface_segundo = int(interface_segundo)
             set_sniffer_router_router(nome_primeiro, interface_primeiro, nome_segundo, interface_segundo, nome_arquivo)
         elif match('set\s+sniffer\s+\w+\s+\w+\.\d+\s+".+"\n?', linha):
             nome_primeiro, nome_segundo, interface, nome_arquivo = findall(
                 'set\s+sniffer\s+(\w+)\s+(\w+)\.(\d+)\s+\"(.+)\"\n?', linha).pop()
+            interface = int(interface)
             set_sniffer_host_router(nome_primeiro, nome_segundo, interface, nome_arquivo)
         elif match('set\s+sniffer\s+\w+\s+\w+\s+".+"\n?', linha):
             nome_primeiro, nome_segundo, nome_arquivo = findall(
@@ -156,7 +161,12 @@ def main():
         elif match('set\s+sniffer\s+(\w+)\.(\d+)\s+\w+\s+".+"\n?', linha):
             nome_primeiro, interface, nome_segundo, nome_arquivo = findall(
                 'set\s+sniffer\s+(\w+)\.(\d+)\s+(\w+)\s+\"(.+)\"\n?', linha).pop()
-            set_sniffer_router_host(nome_primeiro, interface, nome_segundo, nome_arquivo)
+            interface = int(interface)
+            set_sniffer_host_router(nome_segundo, nome_primeiro, interface, nome_arquivo)
+        elif match('simulate\s+(\d+\.\d+)\s+(\w+)\s+"(.+)"', linha):
+            instante_tempo, nome_cliente, comando = findall('simulate\s+(\d+\.\d+)\s+(\w+)\s+"(.+)"', linha).pop()
+            instante_tempo = float(instante_tempo)
+            simulate(instante_tempo, nome_cliente, comando)
     arquivo.close()
 
 

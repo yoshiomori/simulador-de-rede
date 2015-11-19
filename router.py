@@ -2,69 +2,66 @@ import sys
 
 from comum import split_resto, string_to_ip, mascara
 from threading import Condition
+from interface import Interface
 
 
-def set_router(nome_roteador, número_interfaces):
-    print(nome_roteador, número_interfaces)
+class InterfaceRouter(Interface):
+    def __init__(self):
+        super().__init__()
+        self.buffer_entrada = []
+        self.tamanho_buffer_entrada = 0
 
-
-class Interface(object):
-    def __init__(self, buffer_entrada):
+    def set_buffer_entrada(self, buffer_entrada):
         self.buffer_entrada = buffer_entrada
-        self.buffer_saída = []
-        self.ip = None
-        self.tamanho_buffer_router = 0
-
-    def set_ip(self, ip):
-        self.ip = ip
-
-    def tem_saída(self):
-        return len(self.buffer_saída) > 0
 
     def append_entrada(self, datagrama):
-        if len(self.buffer_entrada) >= self.tamanho_buffer_router:
+        if len(self.buffer_entrada) >= self.tamanho_buffer_entrada:
             return  # Não insere se o buffer alcançar o limite
         self.buffer_entrada.append(datagrama)
 
     def pop_entrada(self):
         return self.buffer_entrada.pop(0)
 
-    def append_saída(self, datagrama):
-        self.buffer_saída.append(datagrama)
-
-    def pop_saída(self):
-        return self.buffer_saída.pop(0)
-
-    def set_tamanho_buffer(self, tamanho):
-        self.tamanho_buffer_router = tamanho
+    def set_tamanho_buffer_entrada(self, tamanho):
+        self.tamanho_buffer_entrada = tamanho
 
 
-conjunto_interface = {}
-conjunto_tabelas = {}
-processamento = {}
-tamanho_buffer = {}
+conjunto_interfaces = []
+conjunto_tabelas = []
+processamento = []
+
+índice = []
+
+
+def pega_índice(nome_router):
+    return índice.index(nome_router)
+
+
+def set_router(nome_roteador, número_interfaces):
+    if nome_roteador in índice:
+        raise RuntimeError(nome_roteador, 'já existe')
+    índice.append(nome_roteador)
+    conjunto_interfaces.append([InterfaceRouter() for _ in range(número_interfaces)])
+    conjunto_tabelas.append({})
+    processamento.append(0)
 
 
 def set_ip_router(nome_roteador, entrada):
-    print(nome_roteador, entrada)
+    índice_roteador = pega_índice(nome_roteador)
+    for índice_interface, ip in entrada:
+        conjunto_interfaces[índice_roteador][índice_interface].set_ip(ip)
 
 
 def set_performance(nome_roteador, tempo_para_processar, entrada):  # comando set performance do arquivo de entrada
-    print(nome_roteador, tempo_para_processar, entrada)
-    # resto = split_resto(resto)
-    # processamento[índice] = int(resto[0][:len(resto[0]) - 2])  # gravando o inteiro excluindo us do 100us
-    # for i, v in zip(resto[1::2], resto[2::2]):  # de 100us 0 1000 1 1000 2 1000 temos i = 0, 1, 2 e v = 1000, 1000, 1000
-    #     tamanho_buffer[índice][i] = v
+    índice_roteador = pega_índice(nome_roteador)
+    processamento[índice_roteador] = tempo_para_processar
+    for índice_interface, tamanho_buffer in entrada:
+        conjunto_interfaces[índice_roteador][índice_interface].set_tamanho_buffer_entrada(tamanho_buffer)
 
 
 def set_route(nome_roteador, entrada):  # comando set route do arquivo de entrada
-    print(nome_roteador, entrada)
-    # par = split_resto(resto)
-    # par = [(string_to_ip(ip), outro) for ip, outro in par]
-    # for ip, porta in zip(par[:2*len(conjunto_interface[índice]):2], par[1:2*len(conjunto_interface[índice]):2]):
-    #     conjunto_tabelas[índice][ip] = conjunto_interface[índice][int(porta)]
-    # for ip, outro_ip in zip(par[2*len(conjunto_interface[índice])::2], par[2*len(conjunto_interface[índice])+1::2]):
-    #     conjunto_tabelas[índice][ip] = string_to_ip(outro_ip)
+    índice_roteador = pega_índice(nome_roteador)
+    conjunto_tabelas[índice_roteador] = dict(entrada)
 
 
 def set_ip(índice, resto):  # comando set ip do arquivo trace para roteador
@@ -72,7 +69,7 @@ def set_ip(índice, resto):  # comando set ip do arquivo trace para roteador
     for porta, ip in [(int(porta), string_to_ip(ip)) for porta, ip in zip(porta_ip[::2], porta_ip[1::2])]:
         if len(ip) != 4:
             raise RuntimeError(resto, 'não é válido')
-        conjunto_interface[índice][porta].set_ip(ip)
+        conjunto_interfaces[índice][porta].set_ip(ip)
 
 
 # Cada router tem um índice associado a ele
@@ -84,9 +81,8 @@ def faz(índice, número_interfaces):
 
     interfaces = [Interface(buffer_entrada) for _ in range(número_interfaces)]
     conjunto_tabelas[índice] = tabela
-    conjunto_interface[índice] = interfaces
+    conjunto_interfaces[índice] = interfaces
     processamento[índice] = 0
-    tamanho_buffer[índice] = {}
     for _ in range(número_interfaces):
         interfaces.append(Interface(buffer_entrada))
 
