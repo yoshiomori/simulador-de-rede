@@ -37,9 +37,18 @@ class Interface(object):
 
 conjunto_interface = {}
 conjunto_tabelas = {}
+processamento = {}
+tamanho_buffer = {}
 
 
-def set_route(índice, resto):  # comando set route do arquivo trace
+def set_performance(índice, resto):  # comando set performance do arquivo de entrada
+    resto = split_resto(resto)
+    processamento[índice] = int(resto[0][:len(resto[0]) - 2])  # gravando o inteiro excluindo us do 100us
+    for i, v in zip(resto[1::2], resto[2::2]):  # de 100us 0 1000 1 1000 2 1000 temos i = 0, 1, 2 e v = 1000, 1000, 1000
+        tamanho_buffer[índice][i] = v
+
+
+def set_route(índice, resto):  # comando set route do arquivo de entrada
     par = split_resto(resto)
     par = [(string_to_ip(ip), outro) for ip, outro in par]
     for ip, porta in zip(par[:2*len(conjunto_interface[índice]):2], par[1:2*len(conjunto_interface[índice]):2]):
@@ -60,12 +69,14 @@ def set_ip(índice, resto):  # comando set ip do arquivo trace para roteador
 # O índice de cada router é usado para acessar o seu conjunto de interfaces
 # Função que inicializa um router
 def faz(índice, número_interfaces):
-    global número_pessoas_usando_tempo
     tabela = {}  # Associo o ip à uma interface
     buffer_entrada = []
+
     interfaces = [Interface(buffer_entrada) for _ in range(número_interfaces)]
     conjunto_tabelas[índice] = tabela
     conjunto_interface[índice] = interfaces
+    processamento[índice] = 0
+    tamanho_buffer[índice] = {}
     for _ in range(número_interfaces):
         interfaces.append(Interface(buffer_entrada))
 
