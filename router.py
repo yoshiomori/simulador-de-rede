@@ -1,26 +1,23 @@
 import sys
-
 from comum import split_resto, string_to_ip, mascara
-from threading import Condition
-from interface import Interface
+from interface import Interface, Buffer
+from relógio import tempo_por_iteração, todas_iterações
+from datetime import timedelta
 
 
 class InterfaceRouter(Interface):
     def __init__(self):
         super().__init__()
-        self.buffer_entrada = []
+        self.buffer_entrada = Buffer()
         self.tamanho_buffer_entrada = 0
 
-    def set_buffer_entrada(self, buffer_entrada):
-        self.buffer_entrada = buffer_entrada
-
     def append_entrada(self, datagrama):
-        if len(self.buffer_entrada) >= self.tamanho_buffer_entrada:
+        if len(self.buffer_entrada.buffer) >= self.tamanho_buffer_entrada:
             return  # Não insere se o buffer alcançar o limite
-        self.buffer_entrada.append(datagrama)
+        self.buffer_entrada.append_buffer(datagrama)
 
     def pop_entrada(self):
-        return self.buffer_entrada.pop(0)
+        return self.buffer_entrada.pop_buffer()
 
     def set_tamanho_buffer_entrada(self, tamanho):
         self.tamanho_buffer_entrada = tamanho
@@ -28,22 +25,22 @@ class InterfaceRouter(Interface):
 
 conjunto_interfaces = []
 conjunto_tabelas = []
-processamento = []
+todos_tempos_processamento = []
 
-índice = []
+nome_roteadores = []
 
 
 def pega_índice(nome_router):
-    return índice.index(nome_router)
+    return nome_roteadores.index(nome_router)
 
 
 def set_router(nome_roteador, número_interfaces):
-    if nome_roteador in índice:
+    if nome_roteador in nome_roteadores:
         raise RuntimeError(nome_roteador, 'já existe')
-    índice.append(nome_roteador)
+    nome_roteadores.append(nome_roteador)
     conjunto_interfaces.append([InterfaceRouter() for _ in range(número_interfaces)])
     conjunto_tabelas.append({})
-    processamento.append(0)
+    todos_tempos_processamento.append(timedelta(milliseconds=0))
 
 
 def set_ip_router(nome_roteador, entrada):
@@ -54,7 +51,7 @@ def set_ip_router(nome_roteador, entrada):
 
 def set_performance(nome_roteador, tempo_para_processar, entrada):  # comando set performance do arquivo de entrada
     índice_roteador = pega_índice(nome_roteador)
-    processamento[índice_roteador] = tempo_para_processar
+    todos_tempos_processamento[índice_roteador] = timedelta(milliseconds=tempo_para_processar)
     for índice_interface, tamanho_buffer in entrada:
         conjunto_interfaces[índice_roteador][índice_interface].set_tamanho_buffer_entrada(tamanho_buffer)
 
@@ -72,31 +69,29 @@ def set_ip(índice, resto):  # comando set ip do arquivo trace para roteador
         conjunto_interfaces[índice][porta].set_ip(ip)
 
 
+def inicializa():
+    for índice, nome in enumerate(nome_roteadores):
+        for interface in conjunto_interfaces[índice]:
+            todas_iterações.append(
+                (router, (índice, interface, conjunto_tabelas[índice], todos_tempos_processamento[índice])))
+
+
 # Cada router tem um índice associado a ele
 # O índice de cada router é usado para acessar o seu conjunto de interfaces
 # Função que inicializa um router
-def faz(índice, número_interfaces):
-    tabela = {}  # Associo o ip à uma interface
-    buffer_entrada = []
-
-    interfaces = [Interface(buffer_entrada) for _ in range(número_interfaces)]
-    conjunto_tabelas[índice] = tabela
-    conjunto_interfaces[índice] = interfaces
-    processamento[índice] = 0
-    for _ in range(número_interfaces):
-        interfaces.append(Interface(buffer_entrada))
-
-    def tem_entrada():
-        return len(buffer_entrada) > 0
-
-    c = Condition()
-    while True:
-        c.acquire()
-        c.wait_for(tem_entrada)
-        datagrama = buffer_entrada.pop(0)
-        ip_destino = int.from_bytes(datagrama[32:64], sys.byteorder)
-        while ip_destino & mascara in tabela:
-            if type(tabela[ip_destino & mascara]) is Interface:
-                tabela[ip_destino & mascara].push(datagrama)
-            else:
-                ip_destino = tabela[ip_destino & mascara]
+def router(índice, interface, tabela, tempo_processamento):
+    try:
+        if tempo_processamento <= timedelta(0):
+            datagrama = interface.pop_entrada()
+            ip_destino = int.from_bytes(datagrama[32:64], sys.byteorder)
+            while ip_destino & mascara in tabela:
+                if type(tabela[ip_destino & mascara]) is Interface:
+                    tabela[ip_destino & mascara].push(datagrama)
+                else:
+                    ip_destino = tabela[ip_destino & mascara]
+            tempo_processamento = todos_tempos_processamento[índice]
+        else:
+            tempo_processamento -= tempo_por_iteração
+        todas_iterações.append((router, (índice, interface, tabela, tempo_processamento)))
+    except TimeoutError:
+        pass

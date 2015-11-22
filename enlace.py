@@ -1,8 +1,7 @@
 import router
 import host
-from threading import Condition
 from datetime import timedelta
-from relógio import time, sequencia
+from relógio import time, tempo_por_iteração, todas_iterações
 
 índice_host = []
 índice_interface_router = []
@@ -15,7 +14,7 @@ atrasos = []
 
 def set_duplex_link(taxa, atraso):
     taxas.append(taxa)
-    atrasos.append(atraso)
+    atrasos.append(timedelta(microseconds=atraso))
     com_sniffer.append(False)
     fds.append(None)
 
@@ -31,7 +30,7 @@ def set_duplex_link_host_host(primeiro, segundo, taxa, atraso):
         raise RuntimeError('%s já tem duplex_link' % segundo)
     índice_host.append(segundo)
 
-    índice_duplex_link.append((primeiro, segundo))
+    índice_duplex_link.append((host.interfaces[primeiro], host.interfaces[segundo]))
 
     set_duplex_link(taxa, atraso)
 
@@ -47,7 +46,7 @@ def set_duplex_link_host_router(primeiro, segundo, interface, taxa, atraso):
         raise RuntimeError('%s já tem duplex_link' % segundo)
     índice_interface_router.append((segundo, interface))
 
-    índice_duplex_link.append((primeiro, (segundo, interface)))
+    índice_duplex_link.append((host.interfaces[primeiro], router.conjunto_interfaces[segundo][interface]))
 
     set_duplex_link(taxa, atraso)
 
@@ -63,7 +62,8 @@ def set_duplex_link_router_router(primeiro, interface_primeiro, segundo, interfa
         raise RuntimeError('%s já tem duplex_link' % segundo)
     índice_interface_router.append((índice_segundo, interface_segundo))
 
-    índice_duplex_link.append(((índice_primeiro, interface_primeiro), (índice_segundo, interface_segundo)))
+    índice_duplex_link.append((router.conjunto_interfaces[índice_primeiro][interface_primeiro],
+                               router.conjunto_interfaces[índice_segundo][interface_segundo]))
 
     set_duplex_link(taxa, atraso)
 
@@ -77,8 +77,10 @@ def set_sniffer_router_router(nome_primeiro, interface_primeiro, nome_segundo, i
     i1 = índice_interface_router.index((índice_router_primeiro, interface_primeiro))
     i2 = índice_interface_router.index((índice_router_segundo, interface_segundo))
 
-    chave = ((índice_router_primeiro, interface_primeiro), (índice_router_segundo, interface_segundo)) if i1 < i2 else (
-        (índice_router_segundo, interface_segundo), (índice_router_primeiro, interface_primeiro))
+    chave = (router.conjunto_interfaces[índice_router_primeiro][interface_primeiro],
+             router.conjunto_interfaces[índice_router_segundo][interface_segundo]) if i1 < i2 else (
+        router.conjunto_interfaces[índice_router_segundo][interface_segundo],
+        router[índice_router_primeiro][interface_primeiro])
     try:
         i = índice_duplex_link.index(chave)
     except ValueError:
@@ -92,7 +94,8 @@ def set_sniffer_host_router(nome_primeiro, nome_segundo, interface, nome_arquivo
     índice_primeiro = host.pega_índice(nome_primeiro)
     índice_segundo = router.pega_índice(nome_segundo)
     try:
-        i = índice_duplex_link.index((índice_primeiro, (índice_segundo, interface)))
+        i = índice_duplex_link.index(
+            (host.interfaces[índice_primeiro], router.conjunto_interfaces[índice_segundo][interface]))
     except ValueError:
         raise RuntimeError('Não existe enlace entre %s %s.%d' % (nome_primeiro, nome_segundo, interface))
     com_sniffer[i] = True
@@ -117,21 +120,43 @@ def set_sniffer_host_host(nome_primeiro, nome_segundo, nome_arquivo):
     fds[i] = open(nome_arquivo, 'w')
 
 
-def faz(push_entrada, pop_saída, tem_saída, taxa_transferência, atraso):
-    c = Condition()
-    while True:
-        c.acquire()
-        c.wait_for(tem_saída)
-        agora = time()
-        c.acquire()
-        c.wait_for(lambda: time() - agora >= timedelta(microseconds=atraso))
-        sequencia.acquire()
-        while tem_saída():
-            datagrama = pop_saída()
-            agora = time()
-            sequencia.release()
-            c.acquire()
-            c.wait_for(lambda: time() - agora >= timedelta(len(datagrama) / taxa_transferência))
-            sequencia.acquire()
-            push_entrada(datagrama)
-        sequencia.release()
+def inicializa():
+    for índice, par in enumerate(índice_duplex_link):
+        primeiro, segundo = par
+        todas_iterações.append(
+            (
+                enlace,
+                (índice, primeiro.append_entrada, segundo.pop_saída, lambda: len(segundo.buffer_saída.buffer), None,
+                 atrasos[índice], None)))
+        todas_iterações.append(
+            (
+                enlace,
+                (índice, segundo.append_entrada, primeiro.pop_saída, lambda: len(primeiro.buffer_saída.buffer), None,
+                 atrasos[índice], None)))
+
+
+def enlace(índice, append_entrada, pop_saída, tem_saída, tempo_para_envio, atraso, datagrama):
+    if tem_saída():
+        if atraso:
+            todas_iterações.append(
+                (enlace, (índice, append_entrada, pop_saída, tem_saída, tempo_para_envio, atraso - tempo_por_iteração,
+                          datagrama)))
+        else:
+            if tempo_para_envio is None:
+                datagrama = pop_saída()
+                todas_iterações.append((enlace, (
+                    índice, append_entrada, pop_saída, tem_saída, timedelta(seconds=len(datagrama) / taxas[índice]),
+                    atraso,
+                    datagrama)))
+            elif tempo_para_envio >= timedelta(0):
+                todas_iterações.append((enlace, (
+                    índice, append_entrada, pop_saída, tem_saída, tempo_para_envio - tempo_por_iteração, atraso,
+                    datagrama)))
+            else:
+                append_entrada(datagrama)
+                todas_iterações.append(
+                    (enlace, (índice, append_entrada, pop_saída, tem_saída, None, atrasos[índice], b'')))
+    else:
+        todas_iterações.append(
+            (enlace,
+             (índice, append_entrada, pop_saída, tem_saída, tempo_para_envio, atraso - tempo_por_iteração, datagrama)))

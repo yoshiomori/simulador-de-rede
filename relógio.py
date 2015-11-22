@@ -1,15 +1,31 @@
-from comum import resolução_tempo
 from datetime import timedelta
-from threading import Lock
-time = timedelta(0)
+from threading import Thread
 
-sequencia = Lock()
+tempo_por_iteração = timedelta(milliseconds=20)
+time = timedelta(0)
+final = timedelta(seconds=5)
+
+todas_iterações = []
+todos_releases = []
+
+
+def finish(instante):
+    global final
+    final = timedelta(seconds=instante)
 
 
 def faz():
     global time
-    tempo_por_iteração = timedelta(microseconds=resolução_tempo)
-    while True:
-        sequencia.acquire()
+    todas_iterações_neste_instante_tempo = []
+    while time < final:
+        while any(todas_iterações):
+            todas_iterações_neste_instante_tempo.append(todas_iterações.pop())
+        while any(todas_iterações_neste_instante_tempo):
+            iteração, argumentos = todas_iterações_neste_instante_tempo.pop()
+            Thread(target=iteração, args=argumentos).start()
         time += tempo_por_iteração
-        sequencia.release()
+    for release in todos_releases:
+        try:
+            release()
+        except RuntimeError:
+            pass
